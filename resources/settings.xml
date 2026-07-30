@@ -56,5 +56,15 @@
     <setting id="auto_play_game_checked" type="text" label="" default="" visible="false"/>
     <setting id="stream_finder_settings" type="text" label="" default="{}" visible="false"/>
   </category>
+
+  <!--Main menu-->
+  <category label="30454">
+    <setting id="menu_todays_games" type="bool" label="30360" default="true" />
+    <setting id="menu_yesterdays_games" type="bool" label="30361" default="true" />
+    <setting id="menu_yesterdays_scores_at_inning" type="bool" label="30413" default="false" />
+    <setting id="menu_goto_date" type="bool" label="30362" default="true" />
+    <setting id="menu_minor_league_games" type="bool" label="30426" default="false" />
+    <setting id="menu_featured_videos" type="bool" label="30363" default="false" />
+  </category>
 </settings>
 

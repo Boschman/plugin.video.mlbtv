@@ -59,6 +59,16 @@ GAME_CHANGER_DELAY = int(settings.getSetting(id="game_changer_delay"))
 GAME_LOG_URL = str(settings.getSetting(id="game_log_url")).strip()
 SHOW_STANDINGS = str(settings.getSetting(id='show_standings'))
 
+#Main menu items, as (setting id, label id, mode), each shown only when its setting is enabled
+MENU_ITEMS = [
+    ('menu_todays_games', 30360, 100),
+    ('menu_yesterdays_games', 30361, 105),
+    ('menu_yesterdays_scores_at_inning', 30413, 108),
+    ('menu_goto_date', 30362, 200),
+    ('menu_minor_league_games', 30426, 109),
+    ('menu_featured_videos', 30363, 300)
+]
+
 #Colors
 SCORE_COLOR = 'FF00B7EB'
 GAMETIME_COLOR = 'FFFFFF66'

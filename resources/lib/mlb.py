@@ -19,15 +19,10 @@ def categories():
                 liz.setProperty('IsPlayable', 'true')
             xbmcplugin.addDirectoryItem(handle=addon_handle, url=sys.argv[0] + u, listitem=liz, isFolder=not is_playable)
             standings_rows = get_game_log_standings(latest)
-    addDir(LOCAL_STRING(30360), 100, ICON, FANART)
-    addDir(LOCAL_STRING(30361), 105, ICON, FANART)
-    # see yesterday's scores at inning in the main menu
-    addDir(LOCAL_STRING(30413), 108, ICON, FANART)
-    addDir(LOCAL_STRING(30362), 200, ICON, FANART)
-    # show MiLB games in the main menu
-    addDir(LOCAL_STRING(30426), 109, ICON, FANART)
-    # show Featured Videos in the main menu
-    addDir(LOCAL_STRING(30363), 300, ICON, FANART)
+    # each menu item can be turned off in the settings
+    for setting_id, label_id, mode in MENU_ITEMS:
+        if settings.getSetting(id=setting_id) == 'true':
+            addDir(LOCAL_STRING(label_id), mode, ICON, FANART)
     # the favorite team division standings go below the menu, so they don't push it down
     for row in standings_rows:
         addLabel(row)
