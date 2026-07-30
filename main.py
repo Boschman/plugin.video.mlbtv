@@ -140,19 +140,7 @@ elif mode == 110:
 
 # Goto Date
 elif mode == 200:
-    search_txt = ''
-    dialog = xbmcgui.Dialog()
-    game_day = dialog.input('Enter date (yyyy-mm-dd)', type=xbmcgui.INPUT_ALPHANUM)
-    mat = re.match(r'(\d{4})-(\d{2})-(\d{2})$', game_day)
-    if mat is not None:
-        # Refresh will erase history, so navigating back won't bring up the date prompt again
-        xbmc.executebuiltin('Container.Refresh("plugin://plugin.video.mlbtv/?mode=101&game_day='+game_day+'&start_inning='+str(start_inning)+'")')
-    else:
-        if game_day != '':
-            dialog = xbmcgui.Dialog()
-            dialog.ok(LOCAL_STRING(30365),LOCAL_STRING(30366))
-
-        sys.exit()
+    goto_date(game_day)
 
 # Featured Videos
 elif mode == 300:
@@ -199,5 +187,8 @@ if mode == 100 or (mode is None and AUTO_PLAY_FAV == 'true' and FAV_TEAM != 'Non
 # also don't cache previous/next days
 elif mode == 101:
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False, updateListing=True)
+# don't cache the date list either, since its first page depends on the current date
+elif mode == 200:
+    xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
 else:
     xbmcplugin.endOfDirectory(addon_handle)

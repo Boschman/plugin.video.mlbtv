@@ -23,6 +23,22 @@ def affiliate_menu():
         addDir(affiliate, 100, ICON, FANART, None, 'False', '11,12,13,14', AFFILIATE_TEAM_IDS[affiliate])
 
 
+def goto_date(game_day=None):
+    # without a start date, begin at the day before the current game day
+    if game_day is None:
+        game_day = yesterdays_date()
+    first_day = stringToDate(game_day, "%Y-%m-%d")
+
+    # list 20 dates, newest first
+    for i in range(20):
+        display_day = first_day - timedelta(days=i)
+        addDir(display_day.strftime("%A, %m/%d/%Y"), 101, ICON, FANART, display_day.strftime("%Y-%m-%d"))
+
+    # pagination to the 20 earlier dates
+    next_page_day = first_day - timedelta(days=20)
+    addDir('[B]%s >>[/B]' % LOCAL_STRING(30011), 200, NEXT_ICON, FANART, next_page_day.strftime("%Y-%m-%d"))
+
+
 def todays_games(game_day, start_inning='False', sport=MLB_ID, teams='None'):
     today = localToEastern()
     if game_day is None:
