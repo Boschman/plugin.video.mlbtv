@@ -178,13 +178,28 @@ def watch_monitor(data, pad_seconds, seek_seconds=0):
     if watched_file is None:
         return
 
-    # jump to the requested resume position once playback is under way
+    # jump to the requested resume position once playback is actually under way,
+    # retrying since a seek during stream open is silently dropped
     if seek_seconds > 0:
-        monitor.waitForAbort(1)
-        try:
-            player.seekTime(seek_seconds)
-        except:
-            xbmc.log('MLB game log: unable to seek to the resume position')
+        seek_wait = 0
+        while not monitor.abortRequested() and seek_wait < 30 and xbmc.getCondVisibility('Player.HasMedia'):
+            current_time = 0
+            try:
+                if player.isPlayingVideo():
+                    current_time = player.getTime()
+            except:
+                pass
+            # the seek landed once the position is at or past the target
+            if current_time > seek_seconds - 30:
+                break
+            # only seek while playback is rolling
+            if current_time > 0:
+                try:
+                    player.seekTime(seek_seconds)
+                except:
+                    pass
+            monitor.waitForAbort(2)
+            seek_wait += 1
 
     # track the playback position until our file stops playing
     last_time = 0
