@@ -62,6 +62,29 @@ jobs:
           # artwork shown in Kodi's repository listing
           cp icon.png fanart.jpg "$OUT/plugin.video.mlbtv/"
 
+          # index.html files so the repo branch is browsable as a Kodi file
+          # source via GitHub Pages (raw.githubusercontent has no listings)
+          make_index() {
+            {
+              echo '<!DOCTYPE html><html><head><title>Boschman Kodi repository</title></head><body><ul>'
+              for entry in "$1"/*; do
+                name=$(basename "$entry")
+                [ "$name" = "index.html" ] && continue
+                if [ -d "$entry" ]; then
+                  echo "<li><a href=\"${name}/\">${name}/</a></li>"
+                else
+                  echo "<li><a href=\"${name}\">${name}</a></li>"
+                fi
+              done
+              echo '</ul></body></html>'
+            } > "$1/index.html"
+          }
+          make_index "$OUT"
+          make_index "$OUT/plugin.video.mlbtv"
+          make_index "$OUT/repository.boschman"
+          # serve files as-is, skip Jekyll processing on GitHub Pages
+          touch "$OUT/.nojekyll"
+
       - name: Publish to repo branch
         run: |
           set -e
