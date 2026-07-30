@@ -160,21 +160,22 @@ def watch_monitor(data, pad_seconds, seek_seconds=0):
     monitor = xbmc.Monitor()
     player = xbmc.Player()
 
-    # wait up to 60 seconds for our stream to start, ignoring a possibly still playing previous file
-    initial_file = get_playing_file(player)
-    watched_file = None
+    # wait up to 60 seconds for playback to actually roll
+    # our own item replaced any previous playback, so a rolling video is ours
+    started = False
     waited = 0
     while not monitor.abortRequested() and waited < 60:
-        if xbmc.getCondVisibility('Player.HasMedia'):
-            current_file = get_playing_file(player)
-            if current_file is not None and current_file != initial_file:
-                watched_file = current_file
+        try:
+            if player.isPlayingVideo() and player.getTime() > 0:
+                started = True
                 break
+        except:
+            pass
         monitor.waitForAbort(1)
         waited += 1
-    # allow a replay of the exact same file
-    if watched_file is None and xbmc.getCondVisibility('Player.HasMedia'):
-        watched_file = get_playing_file(player)
+    if not started:
+        return
+    watched_file = get_playing_file(player)
     if watched_file is None:
         return
 
