@@ -12,7 +12,18 @@
 
 const HEADERS = ['Game date', 'Game', 'Type', 'Status'];
 
-function doGet() {
+function doGet(e) {
+  // ?latest=1 returns the most recently watched game (by game date) as JSON
+  if (e && e.parameter && e.parameter.latest === '1') {
+    let latest = null;
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    if (sheet.getLastRow() > 1) {
+      const row = sheet.getRange(2, 1, 1, HEADERS.length).getDisplayValues()[0];
+      latest = { date: row[0], game: row[1], type: row[2], status: row[3] };
+    }
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, latest: latest }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   return ContentService.createTextOutput('MLB.TV game log endpoint is working.');
 }
 

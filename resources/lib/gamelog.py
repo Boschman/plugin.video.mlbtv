@@ -23,6 +23,16 @@ def game_log_data(epg_game, game_type):
         return None
 
 
+# fetch the most recently watched game (by game date) from the sheet
+def get_latest_game_log():
+    try:
+        r = requests.get(GAME_LOG_URL, params={'latest': '1'}, timeout=5)
+        return r.json().get('latest')
+    except:
+        xbmc.log('MLB game log: failed to fetch the latest game')
+        return None
+
+
 def post_game_log(data, status):
     payload = dict(data)
     payload['status'] = status

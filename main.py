@@ -182,7 +182,8 @@ elif mode == 999:
     sys.exit()
 
 # don't cache today's games or addon home screen
-if mode == 100 or (mode is None and AUTO_PLAY_FAV == 'true' and FAV_TEAM != 'None'):
+# the home screen is also dynamic when it shows the most recently watched game
+if mode == 100 or (mode is None and (GAME_LOG_URL != '' or (AUTO_PLAY_FAV == 'true' and FAV_TEAM != 'None'))):
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
 # also don't cache previous/next days
 elif mode == 101:

@@ -464,4 +464,8 @@ msgctxt "#30450"
 msgid "Game log URL (Google Apps Script web app)"
 msgstr ""
 
+msgctxt "#30451"
+msgid "Most recently watched game"
+msgstr ""
+
 

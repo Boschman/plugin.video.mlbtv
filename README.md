@@ -25,6 +25,11 @@ is excluded). Each game has one row: resuming a game later updates the
 existing row, and replaying a finished game resets it to "in progress" until
 you finish it again.
 
+While a game log URL is set, the addon home screen also shows a
+"Most recently watched game" item at the top with the game date and status
+of the most recent game in the sheet (by game date, not by when you watched
+it). The item is informational only, selecting it does nothing.
+
 ### Setting up the Google Sheet connection
 
 Google requires authentication for direct API writes, so the addon posts to a

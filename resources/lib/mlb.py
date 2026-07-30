@@ -1,6 +1,12 @@
 from resources.lib.globals import *
 
 def categories():
+    # show the most recently watched favorite team game from the game log sheet
+    if GAME_LOG_URL != '':
+        from .gamelog import get_latest_game_log
+        latest = get_latest_game_log()
+        if latest is not None:
+            addDir(LOCAL_STRING(30451) + ': ' + latest['date'] + ' (' + latest['status'] + ')', 999, ICON, FANART)
     addDir(LOCAL_STRING(30360), 100, ICON, FANART)
     addDir(LOCAL_STRING(30361), 105, ICON, FANART)
     # see yesterday's scores at inning in the main menu
