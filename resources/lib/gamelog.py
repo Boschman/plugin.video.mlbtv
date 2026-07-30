@@ -120,16 +120,29 @@ def get_game_log_item(latest):
     return (label, '?mode=999', False)
 
 
+# whether the favorite team plays again on the same date after the given game,
+# which only a doubleheader game number suffix in the name can tell us
+def has_later_fav_game(game_date, game):
+    number_match = re.search(r'\(Game (\d+)\)$', game)
+    if number_match is None:
+        return False
+    game_number = int(number_match.group(1))
+    for schedule_game in get_fav_schedule(game_date, game_date):
+        if schedule_game.get('gameNumber', 1) > game_number:
+            return True
+    return False
+
+
 # favorite team division standings rows for the most recently watched game, dated so they
-# can never spoil what is left to watch: the game date once a game has been watched to the
-# end, the day before while it is still in progress or when it is part of a doubleheader,
-# since the rest of that day is still unwatched
+# can never spoil what is left to watch: the game date once that date has been watched to
+# the end, otherwise the day before, since the game itself or the rest of a doubleheader
+# day is still unwatched
 def get_game_log_standings(latest):
     if latest is None or SHOW_STANDINGS != 'true':
         return []
     try:
         game_date = latest['date']
-        if latest['status'] == 'finished' and not re.search(r'\(Game \d+\)$', latest['game']):
+        if latest['status'] == 'finished' and not has_later_fav_game(game_date, latest['game']):
             standings_date = game_date
         else:
             standings_date = (stringToDate(game_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
