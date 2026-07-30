@@ -2,17 +2,20 @@ from resources.lib.globals import *
 
 def categories():
     # show the most recently watched favorite team game from the game log sheet
-    # selecting it resumes an in progress game or opens the stream selection for the next game
+    # a directly playable item resumes an in progress game or opens the stream selection for
+    # the next game; playback must not be triggered from a directory action, since the two
+    # concurrent busy dialogs make Kodi exit
     if GAME_LOG_URL != '':
-        from .gamelog import get_latest_game_log
-        latest = get_latest_game_log()
-        if latest is not None:
-            label = LOCAL_STRING(30451) + ': ' + latest['date'] + ' (' + latest['type'] + ', ' + latest['status'] + ')'
-            u = sys.argv[0] + '?mode=601&game_day=' + urllib.quote_plus(latest['date']) + '&name=' + urllib.quote_plus(latest['game']) + '&game_type=' + urllib.quote_plus(latest['type']) + '&game_status=' + urllib.quote_plus(latest['status']) + '&game_position=' + urllib.quote_plus(latest.get('position', ''))
+        from .gamelog import get_game_log_item
+        game_log_item = get_game_log_item()
+        if game_log_item is not None:
+            label, u, is_playable = game_log_item
             liz = xbmcgui.ListItem(label)
             liz.setArt({'icon': ICON, 'thumb': ICON, 'fanart': FANART})
             liz.setInfo(type='Video', infoLabels={'Title': label})
-            xbmcplugin.addDirectoryItem(handle=addon_handle, url=u, listitem=liz, isFolder=True)
+            if is_playable:
+                liz.setProperty('IsPlayable', 'true')
+            xbmcplugin.addDirectoryItem(handle=addon_handle, url=sys.argv[0] + u, listitem=liz, isFolder=not is_playable)
     addDir(LOCAL_STRING(30360), 100, ICON, FANART)
     addDir(LOCAL_STRING(30361), 105, ICON, FANART)
     # see yesterday's scores at inning in the main menu

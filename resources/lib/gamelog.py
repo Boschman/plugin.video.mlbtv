@@ -77,7 +77,7 @@ def get_pad_seconds(stream_url):
 def get_fav_schedule(start_date, end_date):
     url = f'{API_URL}/api/v1/schedule?sportId=1&teamId={getFavTeamId()}&startDate={start_date}&endDate={end_date}&hydrate=team'
     headers = {'User-Agent': UA_PC}
-    r = requests.get(url, headers=headers, verify=VERIFY)
+    r = requests.get(url, headers=headers, verify=VERIFY, timeout=10)
     games = []
     for date in r.json().get('dates', []):
         for game in date.get('games', []):
@@ -86,53 +86,54 @@ def get_fav_schedule(start_date, end_date):
     return games
 
 
-# handle selecting the most recently watched game item on the home screen:
-# resume an in progress game with its logged play option and position,
-# or open the stream selection for the game after a finished one
-def game_log_action(game_date, game, game_type, game_status, game_position):
-    dialog = xbmcgui.Dialog()
+# build the home screen item for the most recently watched game:
+# a playable item that resumes an in progress game with its logged play option and position,
+# or opens the stream selection for the game after a finished one
+# returns a (label, url_params, is_playable) tuple, or None if there is no log entry
+def get_game_log_item():
+    latest = get_latest_game_log()
+    if latest is None:
+        return None
+    label = LOCAL_STRING(30451) + ': ' + latest['date'] + ' (' + latest['type'] + ', ' + latest['status'] + ')'
     try:
-        if game_status == 'in progress':
-            direct_play = 'fav'
-            if game_type == 'Condensed Game':
-                direct_play = 'condensed'
-            for schedule_game in get_fav_schedule(game_date, game_date):
-                if game_display_name(schedule_game) == game:
-                    play_game(schedule_game, direct_play, position_to_seconds(game_position))
-                    return
-            dialog.notification(LOCAL_STRING(30452), LOCAL_STRING(30453), ICON, 5000, False)
+        if latest['status'] == 'in progress':
+            for schedule_game in get_fav_schedule(latest['date'], latest['date']):
+                if game_display_name(schedule_game) == latest['game']:
+                    direct_play = 'fav'
+                    if latest['type'] == 'Condensed Game':
+                        direct_play = 'condensed'
+                    u = '?mode=104' + play_params(schedule_game) + '&direct_play=' + direct_play
+                    start_seconds = position_to_seconds(latest.get('position', ''))
+                    if start_seconds > 0:
+                        u += '&start_pos=' + str(start_seconds)
+                    return (label, u, True)
         else:
-            # a doubleheader game number suffix determines where to continue on the same date
-            game_number = 1
-            number_match = re.search(r'\(Game (\d+)\)$', game)
-            if number_match:
-                game_number = int(number_match.group(1))
-            end_date = (parse(game_date) + timedelta(days=45)).strftime('%Y-%m-%d')
-            for schedule_game in get_fav_schedule(game_date, end_date):
-                if schedule_game['officialDate'] > game_date or (schedule_game['officialDate'] == game_date and schedule_game.get('gameNumber', 1) > game_number):
-                    # the next game hasn't started yet
-                    if schedule_game['status']['abstractGameState'] == 'Preview':
-                        dialog.notification(LOCAL_STRING(30452), LOCAL_STRING(30454), ICON, 5000, False)
-                        return
-                    play_game(schedule_game, 'select')
-                    return
-            dialog.notification(LOCAL_STRING(30452), LOCAL_STRING(30454), ICON, 5000, False)
+            next_game = find_next_fav_game(latest['date'], latest['game'])
+            if next_game is not None and next_game['status']['abstractGameState'] != 'Preview':
+                return (label, '?mode=103' + play_params(next_game), True)
     except:
-        xbmc.log('MLB game log: game log action failed')
-        dialog.notification(LOCAL_STRING(30452), LOCAL_STRING(30453), ICON, 5000, False)
+        xbmc.log('MLB game log: unable to build a playable home screen item')
+    # no playable action, show an informational item
+    return (label, '?mode=999', False)
 
 
-# trigger playback for a schedule game: a direct play option or the stream selection dialog
-def play_game(schedule_game, direct_play, start_seconds=0):
+# find the first favorite team game after the given one, minding doubleheaders
+def find_next_fav_game(game_date, game):
+    # a doubleheader game number suffix determines where to continue on the same date
+    game_number = 1
+    number_match = re.search(r'\(Game (\d+)\)$', game)
+    if number_match:
+        game_number = int(number_match.group(1))
+    end_date = (parse(game_date) + timedelta(days=45)).strftime('%Y-%m-%d')
+    for schedule_game in get_fav_schedule(game_date, end_date):
+        if schedule_game['officialDate'] > game_date or (schedule_game['officialDate'] == game_date and schedule_game.get('gameNumber', 1) > game_number):
+            return schedule_game
+    return None
+
+
+def play_params(schedule_game):
     name = game_display_name(schedule_game)
-    u_params = '&game_pk=' + str(schedule_game['gamePk']) + '&name=' + urllib.quote_plus(name) + '&description=' + urllib.quote_plus(name)
-    if direct_play == 'select':
-        u = '?mode=103' + u_params
-    else:
-        u = '?mode=104' + u_params + '&direct_play=' + direct_play
-        if start_seconds > 0:
-            u += '&start_pos=' + str(start_seconds)
-    xbmc.executebuiltin('PlayMedia("plugin://plugin.video.mlbtv/' + u + '")')
+    return '&game_pk=' + str(schedule_game['gamePk']) + '&name=' + urllib.quote_plus(name) + '&description=' + urllib.quote_plus(name)
 
 
 # log the game as in progress and watch playback to flip it to finished

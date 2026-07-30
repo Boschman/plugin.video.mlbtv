@@ -36,7 +36,7 @@ watched it). Selecting the item continues where you left off:
   from the logged position.
 - Status "finished": opens the stream selection dialog for your favorite
   team's next game after that date (including game 2 of a doubleheader).
-  If that game hasn't started yet, a notification is shown instead.
+  If that game hasn't started yet, the item is informational only.
 
 ### Setting up the Google Sheet connection
 
