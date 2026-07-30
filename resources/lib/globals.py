@@ -56,6 +56,7 @@ ASK_TO_SKIP = str(settings.getSetting(id='ask_to_skip'))
 AUTO_PLAY_FAV = str(settings.getSetting(id='auto_play_fav'))
 ONLY_FREE_GAMES = str(settings.getSetting(id="only_free_games"))
 GAME_CHANGER_DELAY = int(settings.getSetting(id="game_changer_delay"))
+GAME_LOG_URL = str(settings.getSetting(id="game_log_url")).strip()
 
 #Colors
 SCORE_COLOR = 'FF00B7EB'

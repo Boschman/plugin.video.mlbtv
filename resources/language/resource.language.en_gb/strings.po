@@ -460,4 +460,8 @@ msgctxt "#30449"
 msgid "Play Condensed Game"
 msgstr ""
 
+msgctxt "#30450"
+msgid "Game log URL (Google Apps Script web app)"
+msgstr ""
+
 

@@ -792,7 +792,7 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
     
     # fetch the epg content using the game_pk
     #url = f'{API_URL}/api/v1/schedule?gamePk={game_pk}&hydrate=team,linescore,xrefId,flags,review,broadcasts(all),,seriesStatus(useOverride=true),statusFlags,story&sortBy=gameDate,gameStatus,gameType'
-    url = f'{API_URL}/api/v1/schedule?gamePk={game_pk}&hydrate=broadcasts(all),game(content(highlights(highlights)))'        
+    url = f'{API_URL}/api/v1/schedule?gamePk={game_pk}&hydrate=team,broadcasts(all),game(content(highlights(highlights)))'
     headers = {
         'User-Agent': UA_PC
     }
@@ -1039,6 +1039,10 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
                     highlight_items = game['games'][0]['content']['highlights']['highlights']['items']
                     break
             play_condensed_game(highlight_items)
+            # log condensed games of the favorite team to the game log sheet
+            if GAME_LOG_URL != '' and fav_side is not None:
+                from .gamelog import game_log_data, start_watch_monitor
+                start_watch_monitor(game_log_data(epg_game, 'Condensed Game'))
         # favorite team play option: play their feed without asking for a start point or skip type
         elif n == condensed_offset and fav_offset == 1:
             fav_play = True
@@ -1182,6 +1186,11 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
                 stream_url = 'http://127.0.0.1:43670/' + stream_url
             
             play_stream(stream_url, headers, description, title=name, icon=icon, fanart=fanart, start=broadcast_start_offset, stream_type=stream_type, music_type_unset=from_context_menu)
+
+            # log favorite team games to the game log sheet
+            if GAME_LOG_URL != '' and fav_play is True:
+                from .gamelog import game_log_data, get_pad_seconds, start_watch_monitor
+                start_watch_monitor(game_log_data(epg_game, 'Full Game'), get_pad_seconds(stream_url))
 
             # start the monitor if a skip type or start inning has been requested and we have a broadcast start timestamp
             # or if an overlay is required (overlay enabled for a Bally video stream)
