@@ -1044,13 +1044,27 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
         condensed_offset = 1
         stream_title.insert(0, LOCAL_STRING(30449))
 
+        # append the favorite team division standings as they stood going into this game
+        # anything from here on is display only, so remember where the selectable options end
+        stream_option_count = len(stream_title)
+        if SHOW_STANDINGS == 'true' and direct_play is None and fav_side is not None and epg_game.get('gameType') == 'R' and 'officialDate' in epg_game:
+            standings_date = (stringToDate(epg_game['officialDate'], '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
+            fav_team = epg_game['teams'][fav_side]['team']
+            standings = get_division_standings(epg_game['season'], standings_date, fav_team['league']['id'], fav_team['division']['id'])
+            if standings is not None:
+                stream_title += get_standings_rows(standings, standings_date)
+
         # stream selection dialog, bypassed when the game log item requested a direct play option
         if direct_play == 'condensed':
             n = 0
         elif direct_play == 'fav' and fav_offset == 1:
             n = condensed_offset
         else:
-            n = dialog.select(LOCAL_STRING(30390), stream_title)
+            # re-show the dialog when a standings row is picked, those aren't selectable options
+            while True:
+                n = dialog.select(LOCAL_STRING(30390), stream_title)
+                if n < stream_option_count:
+                    break
         # condensed game play option: play the highlight titled "Condensed Game:" and stop processing here
         if n == 0 and condensed_offset == 1:
             highlight_items = []

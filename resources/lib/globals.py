@@ -57,6 +57,7 @@ AUTO_PLAY_FAV = str(settings.getSetting(id='auto_play_fav'))
 ONLY_FREE_GAMES = str(settings.getSetting(id="only_free_games"))
 GAME_CHANGER_DELAY = int(settings.getSetting(id="game_changer_delay"))
 GAME_LOG_URL = str(settings.getSetting(id="game_log_url")).strip()
+SHOW_STANDINGS = str(settings.getSetting(id='show_standings'))
 
 #Colors
 SCORE_COLOR = 'FF00B7EB'
@@ -506,6 +507,46 @@ def get_last_name(full_name):
     except:
         pass
     return last_name
+
+
+# fetch the division standings as they stood at the end of the given date
+def get_division_standings(season, standings_date, league_id, division_id):
+    try:
+        url = f'{API_URL}/api/v1/standings?leagueId={league_id}&season={season}&date={standings_date}&standingsTypes=regularSeason&hydrate=division,team&fields=records,division,id,nameShort,teamRecords,team,teamName,abbreviation,divisionRank,gamesBack,wins,losses'
+        headers = {
+            'User-Agent': UA_PC
+        }
+        r = requests.get(url, headers=headers, verify=VERIFY, timeout=5)
+        json_source = r.json()
+        for record in json_source['records']:
+            if str(record['division']['id']) == str(division_id):
+                return record
+    except:
+        xbmc.log('Failed to fetch division standings', xbmc.LOGINFO)
+    return None
+
+
+# format a standings record into display rows: a header plus one row per team
+def get_standings_rows(record, standings_date):
+    rows = []
+    try:
+        display_date = stringToDate(standings_date, '%Y-%m-%d').strftime('%b %d').replace(' 0', ' ')
+        rows.append(record['division']['nameShort'] + ' (' + LOCAL_STRING(30453) + ' ' + display_date + ')')
+        fav_team_id = getFavTeamId()
+        for team_record in record['teamRecords']:
+            team = team_record['team']
+            if TEAM_NAMES == '0':
+                team_name = team['teamName']
+            else:
+                team_name = team['abbreviation']
+            row = team_record['divisionRank'] + '. ' + team_name.ljust(14) + (str(team_record['wins']) + '-' + str(team_record['losses'])).ljust(8) + team_record['gamesBack'].rjust(4)
+            if str(team['id']) == str(fav_team_id):
+                row = '[B]' + row + '[/B]'
+            rows.append(row)
+    except:
+        xbmc.log('Failed to format division standings', xbmc.LOGINFO)
+        return []
+    return rows
 
 
 def get_broadcast_start_timestamp(stream_url):

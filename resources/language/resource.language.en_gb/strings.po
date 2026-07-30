@@ -468,4 +468,12 @@ msgctxt "#30451"
 msgid "Most recently watched game"
 msgstr ""
 
+msgctxt "#30452"
+msgid "Show favorite team division standings"
+msgstr ""
+
+msgctxt "#30453"
+msgid "through"
+msgstr ""
+
 
