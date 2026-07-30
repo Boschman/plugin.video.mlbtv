@@ -802,12 +802,14 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
     #epg = json_source['media']['epg'][0]['items']
     #epg = json_source['dates'][0]['games'][0]['broadcasts']
     epg = []
+    epg_game = None
     # loop through dates/games and skip those that have been rescheduled
     if 'dates' in json_source:
         for date in json_source['dates']:
             if 'games' in date:
                 for game in date['games']:
                     if 'rescheduleDate' not in game:
+                        epg_game = game
                         epg = game['broadcasts']
                         break
 
@@ -823,6 +825,7 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
     skip_possible = True # to determine if possible to show skip options dialog
     skip_type = 0
     is_live = False # to pass to skip monitor
+    fav_play = False # favorite team play option, skips the start point and skip dialogs
     # convert start inning values to integers
     if start_inning == 'False':
         start_inning = 0
@@ -890,6 +893,17 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
         # define some more variables used to handle suspended games
         airings = None
         game_date = None
+
+        # favorite team play option: determine which side the favorite team plays, if any
+        fav_offset = 0
+        fav_feed = None
+        fav_side = None
+        eligible_video_feeds = []
+        if FAV_TEAM != 'None' and epg_game is not None:
+            if str(epg_game['teams']['home']['team']['id']) == str(getFavTeamId()):
+                fav_side = 'home'
+            elif str(epg_game['teams']['away']['team']['id']) == str(getFavTeamId()):
+                fav_side = 'away'
 
         # # if no video, not live, if suspended, or if live and not resuming, add audio streams to the video streams
         # if len(json_source['media']['epg']) >= 3 and 'items' in json_source['media']['epg'][2] and (len(epg) == 0 or (epg[0]['mediaState'] != "MEDIA_ON" or suspended != 'False' or (epg[0]['mediaState'] == "MEDIA_ON" and sys.argv[3] != 'resume:true'))):
@@ -966,6 +980,14 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
                         title += blackout_display_time
                     title += ')'
 
+                # favorite team play option: collect playable video feeds
+                if fav_side is not None and item['type'] == 'TV' and item['mediaId'] in entitled_feeds and item['mediaId'] not in blackout_feeds and (blackout == 'False' or (blackout != 'True' and blackout < now)):
+                    feed = (item['mediaId'], item['mediaState']['mediaStateCode'], item['callSign'])
+                    eligible_video_feeds.append(feed)
+                    # prefer the favorite team feed, and a live feed over an archived one (suspended games can have both)
+                    if item['homeAway'] == fav_side and (fav_feed is None or (fav_feed[1] != 'MEDIA_ON' and feed[1] == 'MEDIA_ON')):
+                        fav_feed = feed
+
                 # insert home/national video streams at the top of the list
                 if item['type'] == 'TV' and (item['homeAway'] == 'home' or item['isNational'] == True):
                     content_id.insert(0, item['mediaId'])
@@ -995,12 +1017,24 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
             xbmcplugin.setResolvedUrl(addon_handle, False, xbmcgui.ListItem())
             sys.exit()
 
+        # favorite team play option: fall back to a single video feed if no favorite team feed was found
+        if fav_feed is None and len(eligible_video_feeds) == 1:
+            fav_feed = eligible_video_feeds[0]
+        # add the favorite team play option to the top of the stream selection list
+        if fav_feed is not None:
+            fav_offset = 1
+            stream_title.insert(0, LOCAL_STRING(30448) + ' ' + colorString(FAV_TEAM, getFavTeamColor()))
+
         # stream selection dialog
         n = dialog.select(LOCAL_STRING(30390), stream_title)
+        # favorite team play option: play their feed without asking for a start point or skip type
+        if n == 0 and fav_offset == 1:
+            fav_play = True
+            selected_content_id, selected_media_state, selected_call_letters = fav_feed
         # highlights selection will go to that function and stop processing here
-        if n == 0 and highlight_offset == 1:                        
-            for game in json_source['dates']:                               
-                if 'highlights' in game['games'][0]['content']:                    
+        elif n == fav_offset and highlight_offset == 1:
+            for game in json_source['dates']:
+                if 'highlights' in game['games'][0]['content']:
                     highlight_select_stream(game['games'][0]['content']['highlights']['highlights']['items'], from_context_menu=from_context_menu)
                     break
         # stream selection
@@ -1010,12 +1044,12 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
                 stream_type = 'audio'
             # directly play live YouTube streams in YouTube add-on, if requested
             if stream_title[n] == LOCAL_STRING(30414):
-                xbmc.executebuiltin('RunPlugin("plugin://plugin.video.youtube/play/?video_id=' + content_id[n-highlight_offset] + '")')
+                xbmc.executebuiltin('RunPlugin("plugin://plugin.video.youtube/play/?video_id=' + content_id[n-highlight_offset-fav_offset] + '")')
                 xbmcplugin.endOfDirectory(addon_handle)
             else:
-                selected_content_id = content_id[n-highlight_offset]
-                selected_media_state = media_state[n-highlight_offset]
-                selected_call_letters = call_letters[n-highlight_offset]
+                selected_content_id = content_id[n-highlight_offset-fav_offset]
+                selected_media_state = media_state[n-highlight_offset-fav_offset]
+                selected_call_letters = call_letters[n-highlight_offset-fav_offset]
                 #selected_media_type = media_type[n-highlight_offset]
         # cancel will exit
         elif n == -1:
@@ -1035,7 +1069,8 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
             skip_possible = False
 
         # only show the start point dialog if not using Kodi's default resume ability, the "ask to catch up" option is enabled, no start inning is specified, and we're not looking to autoplay
-        if sys.argv[3] != 'resume:true' and CATCH_UP == 'true' and start_inning == 0 and autoplay is False:
+        # the favorite team play option starts from the beginning (or resumes via Kodi) without asking
+        if sys.argv[3] != 'resume:true' and CATCH_UP == 'true' and start_inning == 0 and autoplay is False and fav_play is False:
 
             # for live video streams
             if selected_media_state == "MEDIA_ON" and stream_type == 'video':
@@ -1101,12 +1136,15 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
                     sys.exit()
         
         # join live and hide the skip dialog if not using Kodi's resume, we didn't show the catch up / start point dialog, the game is live and is already spoiled
-        elif sys.argv[3] != 'resume:true' and is_live is True and spoiler == 'True':
+        elif sys.argv[3] != 'resume:true' and fav_play is False and is_live is True and spoiler == 'True':
         	broadcast_start_offset = '-1'
         	skip_possible = False
         
+        # the favorite team play option always skips commercial breaks without asking
+        if fav_play is True:
+            skip_type = 1
         # show automatic skip dialog, if possible, enabled, and we're not looking to autoplay
-        if skip_possible is True and ASK_TO_SKIP == 'true' and autoplay is False:
+        elif skip_possible is True and ASK_TO_SKIP == 'true' and autoplay is False:
             # automatic skip dialog with options to skip nothing, breaks, breaks + idle time, breaks + idle time + non-action pitches
             skip_type = dialog.select(LOCAL_STRING(30403), [LOCAL_STRING(30404), LOCAL_STRING(30423), LOCAL_STRING(30408), LOCAL_STRING(30405), LOCAL_STRING(30421), LOCAL_STRING(30406)])
             # cancel will exit
