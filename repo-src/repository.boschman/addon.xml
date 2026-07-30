@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.boschman" name="Boschman Repository" version="1.0.0" provider-name="Boschman">
+    <extension point="xbmc.addon.repository" name="Boschman Repository">
+        <dir>
+            <info compressed="false">https://raw.githubusercontent.com/Boschman/plugin.video.mlbtv/repo/addons.xml</info>
+            <checksum>https://raw.githubusercontent.com/Boschman/plugin.video.mlbtv/repo/addons.xml.md5</checksum>
+            <datadir zip="true">https://raw.githubusercontent.com/Boschman/plugin.video.mlbtv/repo/</datadir>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Personal repository for the customized MLB.TV plugin</summary>
+        <description lang="en_GB">Serves the Boschman fork of plugin.video.mlbtv, so Kodi auto-updates from the fork instead of the official repository.</description>
+        <platform>all</platform>
+        <license>GPL-2.0-or-later</license>
+        <source>https://github.com/Boschman/plugin.video.mlbtv</source>
+    </extension>
+</addon>

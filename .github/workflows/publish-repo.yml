@@ -1,0 +1,74 @@
+name: Publish Kodi repository
+
+# Builds a personal Kodi repository on every push and publishes it to the
+# "repo" branch, served via raw.githubusercontent.com. Kodi installs the
+# addon through repository.boschman and auto-updates whenever this runs.
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: ver
+        # The 9999 epoch keeps this fork's version permanently above the
+        # official repo's year-based versions (e.g. 2026.4.9), so Kodi never
+        # replaces the fork with the upstream addon. Date plus run number
+        # makes every push a strictly higher version, which triggers updates.
+        run: echo "version=9999.$(date -u +%Y%m%d).${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build addon and repository files
+        run: |
+          set -e
+          VERSION="${{ steps.ver.outputs.version }}"
+          BUILD=/tmp/build
+          OUT=/tmp/out
+
+          # plugin folder with the stamped version
+          mkdir -p "$BUILD/plugin.video.mlbtv"
+          rsync -a --exclude '.git' --exclude '.git*' --exclude '.github' \
+            --exclude '__pycache__' --exclude 'repo-src' ./ "$BUILD/plugin.video.mlbtv/"
+          sed -i -E "s|(<addon [^>]*version=\")[^\"]*|\1${VERSION}|" "$BUILD/plugin.video.mlbtv/addon.xml"
+
+          # repository addon folder
+          mkdir -p "$BUILD/repository.boschman"
+          cp repo-src/repository.boschman/addon.xml "$BUILD/repository.boschman/"
+
+          # repository index
+          mkdir -p "$OUT/plugin.video.mlbtv" "$OUT/repository.boschman"
+          {
+            echo '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            echo '<addons>'
+            grep -v '<?xml' "$BUILD/plugin.video.mlbtv/addon.xml"
+            grep -v '<?xml' "$BUILD/repository.boschman/addon.xml"
+            echo '</addons>'
+          } > "$OUT/addons.xml"
+          md5sum "$OUT/addons.xml" | awk '{print $1}' > "$OUT/addons.xml.md5"
+
+          # zips, Kodi expects <id>/<id>-<version>.zip below the datadir
+          REPO_VERSION=$(sed -nE 's|.*<addon [^>]*version="([^"]*)".*|\1|p' "$BUILD/repository.boschman/addon.xml")
+          (cd "$BUILD" && zip -qr "$OUT/plugin.video.mlbtv/plugin.video.mlbtv-${VERSION}.zip" plugin.video.mlbtv)
+          (cd "$BUILD" && zip -qr "$OUT/repository.boschman/repository.boschman-${REPO_VERSION}.zip" repository.boschman)
+
+          # artwork shown in Kodi's repository listing
+          cp icon.png fanart.jpg "$OUT/plugin.video.mlbtv/"
+
+      - name: Publish to repo branch
+        run: |
+          set -e
+          cd /tmp/out
+          git init -q -b repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Publish ${{ steps.ver.outputs.version }}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" repo
