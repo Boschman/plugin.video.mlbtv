@@ -1025,14 +1025,26 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
             fav_offset = 1
             stream_title.insert(0, LOCAL_STRING(30448) + ' ' + FAV_TEAM)
 
+        # add the condensed game play option to the very top of the stream selection list
+        condensed_offset = 1
+        stream_title.insert(0, LOCAL_STRING(30449))
+
         # stream selection dialog
         n = dialog.select(LOCAL_STRING(30390), stream_title)
+        # condensed game play option: play the highlight titled "Condensed Game:" and stop processing here
+        if n == 0 and condensed_offset == 1:
+            highlight_items = []
+            for game in json_source['dates']:
+                if 'highlights' in game['games'][0]['content']:
+                    highlight_items = game['games'][0]['content']['highlights']['highlights']['items']
+                    break
+            play_condensed_game(highlight_items)
         # favorite team play option: play their feed without asking for a start point or skip type
-        if n == 0 and fav_offset == 1:
+        elif n == condensed_offset and fav_offset == 1:
             fav_play = True
             selected_content_id, selected_media_state, selected_call_letters = fav_feed
         # highlights selection will go to that function and stop processing here
-        elif n == fav_offset and highlight_offset == 1:
+        elif n == condensed_offset + fav_offset and highlight_offset == 1:
             for game in json_source['dates']:
                 if 'highlights' in game['games'][0]['content']:
                     highlight_select_stream(game['games'][0]['content']['highlights']['highlights']['items'], from_context_menu=from_context_menu)
@@ -1044,12 +1056,12 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
                 stream_type = 'audio'
             # directly play live YouTube streams in YouTube add-on, if requested
             if stream_title[n] == LOCAL_STRING(30414):
-                xbmc.executebuiltin('RunPlugin("plugin://plugin.video.youtube/play/?video_id=' + content_id[n-highlight_offset-fav_offset] + '")')
+                xbmc.executebuiltin('RunPlugin("plugin://plugin.video.youtube/play/?video_id=' + content_id[n-condensed_offset-highlight_offset-fav_offset] + '")')
                 xbmcplugin.endOfDirectory(addon_handle)
             else:
-                selected_content_id = content_id[n-highlight_offset-fav_offset]
-                selected_media_state = media_state[n-highlight_offset-fav_offset]
-                selected_call_letters = call_letters[n-highlight_offset-fav_offset]
+                selected_content_id = content_id[n-condensed_offset-highlight_offset-fav_offset]
+                selected_media_state = media_state[n-condensed_offset-highlight_offset-fav_offset]
+                selected_call_letters = call_letters[n-condensed_offset-highlight_offset-fav_offset]
                 #selected_media_type = media_type[n-highlight_offset]
         # cancel will exit
         elif n == -1:
@@ -1497,6 +1509,19 @@ def get_highlights(items):
         highlights.append({'url': clip_url, 'title': headline, 'icon': icon, 'description': description, 'game_action_tracking': game_action_tracking, 'analysis': analysis, 'highlight_reel': highlight_reel})
 
     return highlights
+
+
+# play the game highlight whose title starts with "Condensed Game:"
+def play_condensed_game(items):
+    for clip in get_highlights(items):
+        if clip['title'].startswith('Condensed Game:'):
+            headers = 'User-Agent=' + UA_PC
+            play_stream(clip['url'], headers, clip['description'], clip['title'])
+            return
+    dialog = xbmcgui.Dialog()
+    dialog.notification(LOCAL_STRING(30449), LOCAL_STRING(30384), ICON, 5000, False)
+    xbmcplugin.setResolvedUrl(addon_handle, False, xbmcgui.ListItem())
+    sys.exit()
 
 
 # Play all recaps or condensed games when a date is selected

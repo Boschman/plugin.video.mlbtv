@@ -456,4 +456,8 @@ msgctxt "#30448"
 msgid "Play"
 msgstr ""
 
+msgctxt "#30449"
+msgid "Play Condensed Game"
+msgstr ""
+
 
