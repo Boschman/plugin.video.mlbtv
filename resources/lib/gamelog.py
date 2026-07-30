@@ -102,7 +102,7 @@ def get_game_log_item():
                     direct_play = 'fav'
                     if latest['type'] == 'Condensed Game':
                         direct_play = 'condensed'
-                    u = '?mode=104' + play_params(schedule_game) + '&direct_play=' + direct_play
+                    u = '?mode=104' + play_params(schedule_game) + '&spoiler=' + game_log_spoiler(latest['date']) + '&direct_play=' + direct_play
                     start_seconds = position_to_seconds(latest.get('position', ''))
                     if start_seconds > 0:
                         u += '&start_pos=' + str(start_seconds)
@@ -110,11 +110,21 @@ def get_game_log_item():
         else:
             next_game = find_next_fav_game(latest['date'], latest['game'])
             if next_game is not None and next_game['status']['abstractGameState'] != 'Preview':
-                return (label, '?mode=103' + play_params(next_game), True)
+                return (label, '?mode=103' + play_params(next_game) + '&spoiler=' + game_log_spoiler(next_game['officialDate']), True)
     except:
         xbmc.log('MLB game log: unable to build a playable home screen item')
     # no playable action, show an informational item
     return (label, '?mode=999', False)
+
+
+# spoiler flag for a favorite team game, matching the games list logic,
+# so direct play streams take the same (proxied) route as manual play
+def game_log_spoiler(game_day):
+    spoiler = 'True'
+    today = localToEastern()
+    if NO_SPOILERS == '1' or NO_SPOILERS == '2' or (NO_SPOILERS == '3' and game_day == today) or (NO_SPOILERS == '4' and game_day < today):
+        spoiler = 'False'
+    return spoiler
 
 
 # find the first favorite team game after the given one, minding doubleheaders
