@@ -1067,9 +1067,6 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
         elif n == condensed_offset and fav_offset == 1:
             fav_play = True
             selected_content_id, selected_media_state, selected_call_letters = fav_feed
-            # resume from the game log position, if requested
-            if direct_play_start is not None:
-                broadcast_start_offset = direct_play_start
         # highlights selection will go to that function and stop processing here
         elif n == condensed_offset + fav_offset and highlight_offset == 1:
             for game in json_source['dates']:
@@ -1213,7 +1210,15 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
             # log favorite team games to the game log sheet
             if GAME_LOG_URL != '' and fav_play is True:
                 from .gamelog import game_log_data, get_pad_seconds, start_watch_monitor
-                start_watch_monitor(game_log_data(epg_game, 'Full Game'), get_pad_seconds(stream_url))
+                # the resume position is applied by seeking after playback starts,
+                # since a start offset stalls inputstream adaptive on these streams
+                seek_seconds = 0
+                if direct_play_start is not None:
+                    try:
+                        seek_seconds = int(direct_play_start)
+                    except:
+                        pass
+                start_watch_monitor(game_log_data(epg_game, 'Full Game'), get_pad_seconds(stream_url), seek_seconds)
 
             # start the monitor if a skip type or start inning has been requested and we have a broadcast start timestamp
             # or if an overlay is required (overlay enabled for a Bally video stream)

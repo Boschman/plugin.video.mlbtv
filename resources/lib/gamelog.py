@@ -137,14 +137,14 @@ def play_params(schedule_game):
 
 
 # log the game as in progress and watch playback to flip it to finished
-def start_watch_monitor(data, pad_seconds=0):
+def start_watch_monitor(data, pad_seconds=0, seek_seconds=0):
     if data is None:
         return
     # a non-daemon thread keeps the addon script alive until playback stops
-    threading.Thread(target=watch_monitor, args=(data, pad_seconds)).start()
+    threading.Thread(target=watch_monitor, args=(data, pad_seconds, seek_seconds)).start()
 
 
-def watch_monitor(data, pad_seconds):
+def watch_monitor(data, pad_seconds, seek_seconds=0):
     post_game_log(data, 'in progress')
 
     monitor = xbmc.Monitor()
@@ -167,6 +167,14 @@ def watch_monitor(data, pad_seconds):
         watched_file = get_playing_file(player)
     if watched_file is None:
         return
+
+    # jump to the requested resume position once playback is under way
+    if seek_seconds > 0:
+        monitor.waitForAbort(1)
+        try:
+            player.seekTime(seek_seconds)
+        except:
+            xbmc.log('MLB game log: unable to seek to the resume position')
 
     # track the playback position until our file stops playing
     last_time = 0
