@@ -1023,7 +1023,7 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
         # add the favorite team play option to the top of the stream selection list
         if fav_feed is not None:
             fav_offset = 1
-            stream_title.insert(0, LOCAL_STRING(30448) + ' ' + colorString(FAV_TEAM, getFavTeamColor()))
+            stream_title.insert(0, LOCAL_STRING(30448) + ' ' + FAV_TEAM)
 
         # stream selection dialog
         n = dialog.select(LOCAL_STRING(30390), stream_title)
