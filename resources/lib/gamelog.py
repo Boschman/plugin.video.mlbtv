@@ -23,17 +23,17 @@ def game_log_data(epg_game, game_type):
             'type': game_type
         }
     except:
-        xbmc.log('MLB game log: unable to build game data')
+        xbmc.log('MLB game log: unable to build game data', xbmc.LOGINFO)
         return None
 
 
 # fetch the most recently watched game (by game date) from the sheet
 def get_latest_game_log():
     try:
-        r = requests.get(GAME_LOG_URL, params={'latest': '1'}, timeout=5)
+        r = requests.get(GAME_LOG_URL, params={'latest': '1'}, timeout=15)
         return r.json().get('latest')
     except:
-        xbmc.log('MLB game log: failed to fetch the latest game')
+        xbmc.log('MLB game log: failed to fetch the latest game', xbmc.LOGINFO)
         return None
 
 
@@ -59,10 +59,10 @@ def post_game_log(data, status, position=None):
     if position is not None:
         payload['position'] = position
     try:
-        requests.post(GAME_LOG_URL, json=payload, timeout=10)
-        xbmc.log('MLB game log: ' + payload['game'] + ' ' + status)
+        requests.post(GAME_LOG_URL, json=payload, timeout=15)
+        xbmc.log('MLB game log: ' + payload['game'] + ' ' + status, xbmc.LOGINFO)
     except:
-        xbmc.log('MLB game log: failed to post to ' + GAME_LOG_URL)
+        xbmc.log('MLB game log: failed to post to ' + GAME_LOG_URL, xbmc.LOGINFO)
 
 
 # seconds of anti-spoiler padding appended to the stream, taken from the proxy querystring
@@ -94,7 +94,11 @@ def get_game_log_item():
     latest = get_latest_game_log()
     if latest is None:
         return None
-    label = LOCAL_STRING(30451) + ': ' + latest['date'] + ' (' + latest['type'] + ', ' + latest['status'] + ')'
+    try:
+        label = LOCAL_STRING(30451) + ': ' + latest['date'] + ' (' + latest['type'] + ', ' + latest['status'] + ')'
+    except:
+        xbmc.log('MLB game log: malformed latest game data', xbmc.LOGINFO)
+        return None
     try:
         if latest['status'] == 'in progress':
             for schedule_game in get_fav_schedule(latest['date'], latest['date']):
@@ -112,7 +116,7 @@ def get_game_log_item():
             if next_game is not None and next_game['status']['abstractGameState'] != 'Preview':
                 return (label, '?mode=103' + play_params(next_game) + '&spoiler=' + game_log_spoiler(next_game['officialDate']), True)
     except:
-        xbmc.log('MLB game log: unable to build a playable home screen item')
+        xbmc.log('MLB game log: unable to build a playable home screen item', xbmc.LOGINFO)
     # no playable action, show an informational item
     return (label, '?mode=999', False)
 
