@@ -287,6 +287,14 @@ def addDir(name,mode,icon,fanart=None,game_day=None,start_inning='False',sport=M
     return ok
 
 
+# a text only row, mode 999 does nothing when it is selected
+def addLabel(name):
+    liz = xbmcgui.ListItem(name)
+    liz.setArt({'icon': ICON, 'thumb': ICON, 'fanart': FANART})
+    liz.setInfo(type='Video', infoLabels={'Title': name})
+    return xbmcplugin.addDirectoryItem(handle=addon_handle, url=sys.argv[0] + '?mode=999', listitem=liz, isFolder=True)
+
+
 def addPlaylist(name,game_day,mode,icon,fanart=None):
     ok=True    
     u=sys.argv[0]+"?mode="+str(mode)+"&name="+urllib.quote_plus(name)+"&icon="+urllib.quote_plus(icon)+"&stream_date="+urllib.quote_plus(str(game_day))
@@ -509,18 +517,22 @@ def get_last_name(full_name):
     return last_name
 
 
-# fetch the division standings as they stood at the end of the given date
-def get_division_standings(season, standings_date, league_id, division_id):
+# fetch the favorite team division standings as they stood at the end of the given date
+def get_fav_division_standings(season, standings_date):
+    fav_team_id = getFavTeamId()
+    if fav_team_id is None:
+        return None
     try:
-        url = f'{API_URL}/api/v1/standings?leagueId={league_id}&season={season}&date={standings_date}&standingsTypes=regularSeason&hydrate=division,team&fields=records,division,id,nameShort,teamRecords,team,teamName,abbreviation,divisionRank,gamesBack,wins,losses'
+        url = f'{API_URL}/api/v1/standings?leagueId=103,104&season={season}&date={standings_date}&standingsTypes=regularSeason&hydrate=division,team&fields=records,division,id,nameShort,teamRecords,team,teamName,abbreviation,divisionRank,gamesBack,wins,losses'
         headers = {
             'User-Agent': UA_PC
         }
         r = requests.get(url, headers=headers, verify=VERIFY, timeout=5)
         json_source = r.json()
         for record in json_source['records']:
-            if str(record['division']['id']) == str(division_id):
-                return record
+            for team_record in record['teamRecords']:
+                if str(team_record['team']['id']) == str(fav_team_id):
+                    return record
     except:
         xbmc.log('Failed to fetch division standings', xbmc.LOGINFO)
     return None

@@ -5,9 +5,11 @@ def categories():
     # a directly playable item resumes an in progress game or opens the stream selection for
     # the next game; playback must not be triggered from a directory action, since the two
     # concurrent busy dialogs make Kodi exit
+    standings_rows = []
     if GAME_LOG_URL != '':
-        from .gamelog import get_game_log_item
-        game_log_item = get_game_log_item()
+        from .gamelog import get_latest_game_log, get_game_log_item, get_game_log_standings
+        latest = get_latest_game_log()
+        game_log_item = get_game_log_item(latest)
         if game_log_item is not None:
             label, u, is_playable = game_log_item
             liz = xbmcgui.ListItem(label)
@@ -16,6 +18,7 @@ def categories():
             if is_playable:
                 liz.setProperty('IsPlayable', 'true')
             xbmcplugin.addDirectoryItem(handle=addon_handle, url=sys.argv[0] + u, listitem=liz, isFolder=not is_playable)
+            standings_rows = get_game_log_standings(latest)
     addDir(LOCAL_STRING(30360), 100, ICON, FANART)
     addDir(LOCAL_STRING(30361), 105, ICON, FANART)
     # see yesterday's scores at inning in the main menu
@@ -25,6 +28,9 @@ def categories():
     addDir(LOCAL_STRING(30426), 109, ICON, FANART)
     # show Featured Videos in the main menu
     addDir(LOCAL_STRING(30363), 300, ICON, FANART)
+    # the favorite team division standings go below the menu, so they don't push it down
+    for row in standings_rows:
+        addLabel(row)
 
 def minor_league_categories():
     addDir(LOCAL_STRING(30429), 110, ICON, FANART)
@@ -1049,8 +1055,7 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
         stream_option_count = len(stream_title)
         if SHOW_STANDINGS == 'true' and direct_play is None and fav_side is not None and epg_game.get('gameType') == 'R' and 'officialDate' in epg_game:
             standings_date = (stringToDate(epg_game['officialDate'], '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
-            fav_team = epg_game['teams'][fav_side]['team']
-            standings = get_division_standings(epg_game['season'], standings_date, fav_team['league']['id'], fav_team['division']['id'])
+            standings = get_fav_division_standings(epg_game['season'], standings_date)
             if standings is not None:
                 stream_title += get_standings_rows(standings, standings_date)
 

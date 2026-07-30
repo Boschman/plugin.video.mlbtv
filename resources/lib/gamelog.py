@@ -90,8 +90,7 @@ def get_fav_schedule(start_date, end_date):
 # a playable item that resumes an in progress game with its logged play option and position,
 # or opens the stream selection for the game after a finished one
 # returns a (label, url_params, is_playable) tuple, or None if there is no log entry
-def get_game_log_item():
-    latest = get_latest_game_log()
+def get_game_log_item(latest):
     if latest is None:
         return None
     try:
@@ -119,6 +118,27 @@ def get_game_log_item():
         xbmc.log('MLB game log: unable to build a playable home screen item', xbmc.LOGINFO)
     # no playable action, show an informational item
     return (label, '?mode=999', False)
+
+
+# favorite team division standings rows for the most recently watched game, dated so they
+# can never spoil what is left to watch: the game date once a game has been watched to the
+# end, the day before while it is still in progress or when it is part of a doubleheader,
+# since the rest of that day is still unwatched
+def get_game_log_standings(latest):
+    if latest is None or SHOW_STANDINGS != 'true':
+        return []
+    try:
+        game_date = latest['date']
+        if latest['status'] == 'finished' and not re.search(r'\(Game \d+\)$', latest['game']):
+            standings_date = game_date
+        else:
+            standings_date = (stringToDate(game_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
+        standings = get_fav_division_standings(game_date[:4], standings_date)
+        if standings is not None:
+            return get_standings_rows(standings, standings_date)
+    except:
+        xbmc.log('MLB game log: unable to build the standings rows', xbmc.LOGINFO)
+    return []
 
 
 # spoiler flag for a favorite team game, matching the games list logic,
