@@ -138,6 +138,11 @@ def stringToDate(string, date_format):
     return date
 
 
+# a game date shown compactly, e.g. Sun 19 Jul
+def get_short_date(game_date):
+    return stringToDate(game_date, '%Y-%m-%d').strftime('%a %d %b').replace(' 0', ' ')
+
+
 def easternToLocal(eastern_time):
     utc = pytz.utc
     eastern = pytz.timezone('US/Eastern')    
@@ -552,8 +557,7 @@ def get_fav_division_standings(season, standings_date):
 def get_standings_rows(record, standings_date):
     rows = []
     try:
-        display_date = stringToDate(standings_date, '%Y-%m-%d').strftime('%b %d').replace(' 0', ' ')
-        rows.append('[B]' + record['division']['nameShort'] + ' (' + LOCAL_STRING(30453) + ' ' + display_date + ')[/B]')
+        rows.append('[B]' + record['division']['nameShort'] + ' (' + LOCAL_STRING(30453) + ' ' + get_short_date(standings_date) + ')[/B]')
         fav_team_id = getFavTeamId()
         for team_record in record['teamRecords']:
             team = team_record['team']

@@ -94,7 +94,7 @@ def get_game_log_item(latest):
     if latest is None:
         return None
     try:
-        label = LOCAL_STRING(30451) + ': ' + latest['date'] + ' (' + latest['type'] + ', ' + latest['status'] + ')'
+        label = LOCAL_STRING(30451) + ': ' + get_short_date(latest['date']) + ' (' + latest['type'] + ', ' + latest['status'] + ')'
     except:
         xbmc.log('MLB game log: malformed latest game data', xbmc.LOGINFO)
         return None
