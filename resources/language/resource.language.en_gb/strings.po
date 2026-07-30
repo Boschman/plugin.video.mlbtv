@@ -468,4 +468,16 @@ msgctxt "#30451"
 msgid "Most recently watched game"
 msgstr ""
 
+msgctxt "#30452"
+msgid "Game log"
+msgstr ""
+
+msgctxt "#30453"
+msgid "Game not found"
+msgstr ""
+
+msgctxt "#30454"
+msgid "Next game not available yet"
+msgstr ""
+
 

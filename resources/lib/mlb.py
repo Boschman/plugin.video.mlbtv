@@ -2,11 +2,17 @@ from resources.lib.globals import *
 
 def categories():
     # show the most recently watched favorite team game from the game log sheet
+    # selecting it resumes an in progress game or opens the stream selection for the next game
     if GAME_LOG_URL != '':
         from .gamelog import get_latest_game_log
         latest = get_latest_game_log()
         if latest is not None:
-            addDir(LOCAL_STRING(30451) + ': ' + latest['date'] + ' (' + latest['status'] + ')', 999, ICON, FANART)
+            label = LOCAL_STRING(30451) + ': ' + latest['date'] + ' (' + latest['type'] + ', ' + latest['status'] + ')'
+            u = sys.argv[0] + '?mode=601&game_day=' + urllib.quote_plus(latest['date']) + '&name=' + urllib.quote_plus(latest['game']) + '&game_type=' + urllib.quote_plus(latest['type']) + '&game_status=' + urllib.quote_plus(latest['status']) + '&game_position=' + urllib.quote_plus(latest.get('position', ''))
+            liz = xbmcgui.ListItem(label)
+            liz.setArt({'icon': ICON, 'thumb': ICON, 'fanart': FANART})
+            liz.setInfo(type='Video', infoLabels={'Title': label})
+            xbmcplugin.addDirectoryItem(handle=addon_handle, url=u, listitem=liz, isFolder=True)
     addDir(LOCAL_STRING(30360), 100, ICON, FANART)
     addDir(LOCAL_STRING(30361), 105, ICON, FANART)
     # see yesterday's scores at inning in the main menu
@@ -753,7 +759,7 @@ def create_stream_finder_listitem(blackouts, inprogress_exists, game_changer_sta
     xbmcplugin.setContent(addon_handle, 'episodes')
 
 
-def stream_select(game_pk, spoiler='True', suspended='False', start_inning='False', blackout='False', description=None, name=None, icon=None, fanart=None, from_context_menu=False, autoplay=False, overlay_check='False', gamechanger='False'):
+def stream_select(game_pk, spoiler='True', suspended='False', start_inning='False', blackout='False', description=None, name=None, icon=None, fanart=None, from_context_menu=False, autoplay=False, overlay_check='False', gamechanger='False', direct_play=None, direct_play_start=None):
     # fetch the entitlements using the game_pk
     from .account import Account
     account = Account()
@@ -1035,8 +1041,13 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
         condensed_offset = 1
         stream_title.insert(0, LOCAL_STRING(30449))
 
-        # stream selection dialog
-        n = dialog.select(LOCAL_STRING(30390), stream_title)
+        # stream selection dialog, bypassed when the game log item requested a direct play option
+        if direct_play == 'condensed':
+            n = 0
+        elif direct_play == 'fav' and fav_offset == 1:
+            n = condensed_offset
+        else:
+            n = dialog.select(LOCAL_STRING(30390), stream_title)
         # condensed game play option: play the highlight titled "Condensed Game:" and stop processing here
         if n == 0 and condensed_offset == 1:
             highlight_items = []
@@ -1044,7 +1055,7 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
                 if 'highlights' in game['games'][0]['content']:
                     highlight_items = game['games'][0]['content']['highlights']['highlights']['items']
                     break
-            play_condensed_game(highlight_items)
+            play_condensed_game(highlight_items, start=direct_play_start or '1')
             # log condensed games of the favorite team to the game log sheet
             if GAME_LOG_URL != '' and fav_side is not None:
                 from .gamelog import game_log_data, start_watch_monitor
@@ -1053,6 +1064,9 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
         elif n == condensed_offset and fav_offset == 1:
             fav_play = True
             selected_content_id, selected_media_state, selected_call_letters = fav_feed
+            # resume from the game log position, if requested
+            if direct_play_start is not None:
+                broadcast_start_offset = direct_play_start
         # highlights selection will go to that function and stop processing here
         elif n == condensed_offset + fav_offset and highlight_offset == 1:
             for game in json_source['dates']:
@@ -1527,11 +1541,11 @@ def get_highlights(items):
 
 
 # play the game highlight whose title starts with "Condensed Game:"
-def play_condensed_game(items):
+def play_condensed_game(items, start='1'):
     for clip in get_highlights(items):
         if clip['title'].startswith('Condensed Game:'):
             headers = 'User-Agent=' + UA_PC
-            play_stream(clip['url'], headers, clip['description'], clip['title'])
+            play_stream(clip['url'], headers, clip['description'], clip['title'], start=start)
             return
     dialog = xbmcgui.Dialog()
     dialog.notification(LOCAL_STRING(30449), LOCAL_STRING(30384), ICON, 5000, False)

@@ -19,6 +19,11 @@ description = None
 sport = MLB_ID
 teams = 'None'
 gamechanger = 'False'
+game_type = None
+game_status = None
+game_position = None
+direct_play = None
+start_pos = None
 
 if 'name' in params:
     name = urllib.unquote_plus(params["name"])
@@ -71,6 +76,21 @@ if 'teams' in params:
 if 'gamechanger' in params:
     gamechanger = urllib.unquote_plus(params["gamechanger"])
 
+if 'game_type' in params:
+    game_type = urllib.unquote_plus(params["game_type"])
+
+if 'game_status' in params:
+    game_status = urllib.unquote_plus(params["game_status"])
+
+if 'game_position' in params:
+    game_position = urllib.unquote_plus(params["game_position"])
+
+if 'direct_play' in params:
+    direct_play = urllib.unquote_plus(params["direct_play"])
+
+if 'start_pos' in params:
+    start_pos = urllib.unquote_plus(params["start_pos"])
+
 # default addon home screen
 if mode is None:
     # autoplay fav team, if that setting is enabled and a live broadcast is in progress
@@ -101,7 +121,7 @@ elif mode == 103:
 
 # normal stream selection
 elif mode == 104:
-    stream_select(game_pk, spoiler, suspended, start_inning, blackout, description, name, icon, fanart)
+    stream_select(game_pk, spoiler, suspended, start_inning, blackout, description, name, icon, fanart, direct_play=direct_play, direct_play_start=start_pos)
 
 # Yesterday's Games
 elif mode == 105:
@@ -178,6 +198,11 @@ elif mode == 501:
 elif mode == 900:
     playAllHighlights(stream_date)
 
+# game log home screen item action
+elif mode == 601:
+    from resources.lib.gamelog import game_log_action
+    game_log_action(game_day, name, game_type, game_status, game_position)
+
 elif mode == 999:
     sys.exit()
 
@@ -191,5 +216,8 @@ elif mode == 101:
 # don't cache the date list either, since its first page depends on the current date
 elif mode == 200:
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
+# the game log item is an action, not a directory, so fail the listing to stay on the home screen
+elif mode == 601:
+    xbmcplugin.endOfDirectory(addon_handle, succeeded=False)
 else:
     xbmcplugin.endOfDirectory(addon_handle)

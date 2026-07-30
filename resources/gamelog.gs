@@ -10,7 +10,7 @@
 // 3. Copy the web app URL (ends in /exec) into the addon setting
 //    "Game log URL (Google Apps Script web app)".
 
-const HEADERS = ['Game date', 'Game', 'Type', 'Status'];
+const HEADERS = ['Game date', 'Game', 'Type', 'Status', 'Position'];
 
 function doGet(e) {
   // ?latest=1 returns the most recently watched game (by game date) as JSON
@@ -19,7 +19,7 @@ function doGet(e) {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
     if (sheet.getLastRow() > 1) {
       const row = sheet.getRange(2, 1, 1, HEADERS.length).getDisplayValues()[0];
-      latest = { date: row[0], game: row[1], type: row[2], status: row[3] };
+      latest = { date: row[0], game: row[1], type: row[2], status: row[3], position: row[4] };
     }
     return ContentService.createTextOutput(JSON.stringify({ ok: true, latest: latest }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -37,12 +37,18 @@ function doPost(e) {
     const rowIndex = findRow_(sheet, data);
     if (rowIndex > 0) {
       sheet.getRange(rowIndex, 4).setValue(data.status);
+      // keep the resume position of unfinished games, clear it once finished
+      if (data.status === 'finished') {
+        sheet.getRange(rowIndex, 5).setValue('');
+      } else if (data.position) {
+        sheet.getRange(rowIndex, 5).setNumberFormat('@').setValue(data.position);
+      }
     } else {
       sheet.insertRowBefore(2);
       // store as plain text so YYYY-MM-DD dates keep sorting correctly
       const range = sheet.getRange(2, 1, 1, HEADERS.length);
       range.setNumberFormat('@');
-      range.setValues([[data.date, data.game, data.type, data.status]]);
+      range.setValues([[data.date, data.game, data.type, data.status, data.position || '']]);
       sortLog_(sheet);
     }
     return ContentService.createTextOutput(JSON.stringify({ ok: true }))
@@ -55,6 +61,9 @@ function doPost(e) {
 function ensureHeader_(sheet) {
   if (sheet.getRange(1, 1).getValue() !== HEADERS[0]) {
     sheet.insertRowBefore(1);
+  }
+  // also extends the header of sheets created before the Position column existed
+  if (sheet.getRange(1, HEADERS.length).getValue() !== HEADERS[HEADERS.length - 1]) {
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
   }
 }

@@ -18,6 +18,7 @@ top and each row holds:
 | Game      | For instance "Red Sox @ Yankees", with a "(Game 2)" suffix for doubleheaders |
 | Type      | Full Game or Condensed Game                                               |
 | Status    | "in progress" or "finished"                                               |
+| Position  | Where you stopped (H:MM:SS) in an unfinished game, cleared once finished  |
 
 The status starts as "in progress" and changes to "finished" once you stop
 playback at 95% or later of the actual broadcast (anti-spoiler stream padding
@@ -26,9 +27,16 @@ existing row, and replaying a finished game resets it to "in progress" until
 you finish it again.
 
 While a game log URL is set, the addon home screen also shows a
-"Most recently watched game" item at the top with the game date and status
-of the most recent game in the sheet (by game date, not by when you watched
-it). The item is informational only, selecting it does nothing.
+"Most recently watched game" item at the top with the game date, type and
+status of the most recent game in the sheet (by game date, not by when you
+watched it). Selecting the item continues where you left off:
+
+- Status "in progress": plays that game again with the logged play option
+  (the favorite team feed for a Full Game, or the condensed game), resuming
+  from the logged position.
+- Status "finished": opens the stream selection dialog for your favorite
+  team's next game after that date (including game 2 of a doubleheader).
+  If that game hasn't started yet, a notification is shown instead.
 
 ### Setting up the Google Sheet connection
 
