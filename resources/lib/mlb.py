@@ -9,23 +9,26 @@ def categories():
     if GAME_LOG_URL != '':
         from .gamelog import get_latest_game_log, get_game_log_item, get_game_log_standings
         latest = get_latest_game_log()
-        game_log_item = get_game_log_item(latest)
-        if game_log_item is not None:
-            label, u, is_playable = game_log_item
-            liz = xbmcgui.ListItem(label)
-            liz.setArt({'icon': ICON, 'thumb': ICON, 'fanart': FANART})
-            liz.setInfo(type='Video', infoLabels={'Title': label})
-            if is_playable:
-                liz.setProperty('IsPlayable', 'true')
-            xbmcplugin.addDirectoryItem(handle=addon_handle, url=sys.argv[0] + u, listitem=liz, isFolder=not is_playable)
-            standings_rows = get_game_log_standings(latest)
+        if settings.getSetting(id='menu_recently_watched') == 'true':
+            game_log_item = get_game_log_item(latest)
+            if game_log_item is not None:
+                label, u, is_playable = game_log_item
+                liz = xbmcgui.ListItem(label)
+                liz.setArt({'icon': ICON, 'thumb': ICON, 'fanart': FANART})
+                liz.setInfo(type='Video', infoLabels={'Title': label})
+                if is_playable:
+                    liz.setProperty('IsPlayable', 'true')
+                xbmcplugin.addDirectoryItem(handle=addon_handle, url=sys.argv[0] + u, listitem=liz, isFolder=not is_playable)
+        standings_rows = get_game_log_standings(latest)
     # each menu item can be turned off in the settings
     for setting_id, label_id, mode in MENU_ITEMS:
         if settings.getSetting(id=setting_id) == 'true':
             addDir(LOCAL_STRING(label_id), mode, ICON, FANART)
     # the favorite team division standings go below the menu, so they don't push it down
-    for row in standings_rows:
-        addLabel(row)
+    if standings_rows:
+        addLabel('-' * 30)
+        for row in standings_rows:
+            addLabel(row)
 
 def minor_league_categories():
     addDir(LOCAL_STRING(30429), 110, ICON, FANART)

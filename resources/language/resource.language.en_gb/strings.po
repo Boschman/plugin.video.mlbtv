@@ -465,7 +465,7 @@ msgid "Game log URL (Google Apps Script web app)"
 msgstr ""
 
 msgctxt "#30451"
-msgid "Most recently watched game"
+msgid "Recently watched"
 msgstr ""
 
 msgctxt "#30452"

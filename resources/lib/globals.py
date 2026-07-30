@@ -553,7 +553,7 @@ def get_standings_rows(record, standings_date):
     rows = []
     try:
         display_date = stringToDate(standings_date, '%Y-%m-%d').strftime('%b %d').replace(' 0', ' ')
-        rows.append(record['division']['nameShort'] + ' (' + LOCAL_STRING(30453) + ' ' + display_date + ')')
+        rows.append('[B]' + record['division']['nameShort'] + ' (' + LOCAL_STRING(30453) + ' ' + display_date + ')[/B]')
         fav_team_id = getFavTeamId()
         for team_record in record['teamRecords']:
             team = team_record['team']

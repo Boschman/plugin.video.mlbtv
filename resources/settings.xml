@@ -59,6 +59,7 @@
 
   <!--Main menu-->
   <category label="30454">
+    <setting id="menu_recently_watched" type="bool" label="30451" default="true" />
     <setting id="menu_todays_games" type="bool" label="30360" default="true" />
     <setting id="menu_yesterdays_games" type="bool" label="30361" default="true" />
     <setting id="menu_yesterdays_scores_at_inning" type="bool" label="30413" default="false" />
