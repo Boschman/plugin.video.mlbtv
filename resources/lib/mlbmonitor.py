@@ -963,7 +963,7 @@ class MLBMonitor(xbmc.Monitor):
         player.showSubtitles(False)
         xbmc.log(monitor_name + " captions disabled")
 
-    def game_monitor(self, skip_type, game_pk, broadcast_start_timestamp, stream_url, is_live, start_inning, start_inning_half, milb=False):
+    def game_monitor(self, skip_type, game_pk, broadcast_start_timestamp, stream_url, is_live, start_inning, start_inning_half, milb=False, resume_time=0):
         xbmc.log("Game monitor for " + game_pk + " starting")
 
         self.mlb_monitor_started = str(datetime.now())
@@ -995,6 +995,13 @@ class MLBMonitor(xbmc.Monitor):
             self.skip_to_players = None
             skip_markers, self.skip_to_players = self.get_skip_markers(skip_type, game_pk, broadcast_start_timestamp, monitor_name, self.skip_to_players, stream_url, 0, start_inning, start_inning_half, milb)
             xbmc.log(monitor_name + ' skip markers : ' + str(skip_markers))
+
+            # when resuming at a position, drop all markers starting at or before it,
+            # so the monitor does not add a second skip on top of the resume seek
+            if resume_time > 0:
+                while len(skip_markers) > 0 and skip_markers[0][0] <= resume_time:
+                    xbmc.log(monitor_name + ' removed skip marker starting at ' + str(skip_markers[0][0]) + ', at or before resume position ' + str(resume_time))
+                    skip_markers.pop(0)
 
             while not self.monitor.abortRequested():
                 if self.monitor.waitForAbort(1):

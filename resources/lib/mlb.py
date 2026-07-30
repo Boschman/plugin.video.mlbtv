@@ -1207,18 +1207,20 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
             
             play_stream(stream_url, headers, description, title=name, icon=icon, fanart=fanart, start=broadcast_start_offset, stream_type=stream_type, music_type_unset=from_context_menu)
 
+            # resume position requested by the game log home screen item, applied by
+            # seeking after playback starts, since a start offset stalls inputstream
+            # adaptive on these streams
+            resume_seconds = 0
+            if fav_play is True and direct_play_start is not None:
+                try:
+                    resume_seconds = int(direct_play_start)
+                except:
+                    pass
+
             # log favorite team games to the game log sheet
             if GAME_LOG_URL != '' and fav_play is True:
                 from .gamelog import game_log_data, get_pad_seconds, start_watch_monitor
-                # the resume position is applied by seeking after playback starts,
-                # since a start offset stalls inputstream adaptive on these streams
-                seek_seconds = 0
-                if direct_play_start is not None:
-                    try:
-                        seek_seconds = int(direct_play_start)
-                    except:
-                        pass
-                start_watch_monitor(game_log_data(epg_game, 'Full Game'), get_pad_seconds(stream_url), seek_seconds)
+                start_watch_monitor(game_log_data(epg_game, 'Full Game'), get_pad_seconds(stream_url), resume_seconds)
 
             # start the monitor if a skip type or start inning has been requested and we have a broadcast start timestamp
             # or if an overlay is required (overlay enabled for a Bally video stream)
@@ -1242,7 +1244,7 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
 
                     # call the game monitor for skips and/or to stop the overlay
                     if ((skip_type > 0 or start_inning > 0) and broadcast_start_timestamp is not None) or (HIDE_SCORES_TICKER == 'true' and selected_call_letters.startswith(SCORES_TICKER_NETWORK)):
-                        mlbmonitor.game_monitor(skip_type, game_pk, broadcast_start_timestamp, stream_url, is_live, start_inning, start_inning_half)
+                        mlbmonitor.game_monitor(skip_type, game_pk, broadcast_start_timestamp, stream_url, is_live, start_inning, start_inning_half, resume_time=resume_seconds)
 
         # otherwise exit
         else:
