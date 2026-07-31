@@ -122,6 +122,12 @@ class RequestHandler(BaseHTTPRequestHandler):
           # remove ad insertion tag lines
           content = re.sub(r"^(?:#EXT-OATCLS-SCTE35:[\S]+\n)", r"", content, flags=re.M)
           content = re.sub(r"^(?:#EXT-X-CUE-[\S]+\n)", r"", content, flags=re.M)
+          # remove the alternate audio tracks (radio feeds): Kodi switches to one mid-playback
+          # and then blanks the video, because the TV audio is muxed into the video segments
+          # and Inputstream Adaptive cannot serve that video alongside a separate audio track.
+          # only strip them when the muxed track (the one without a URI) is there to fall back on
+          if re.search(r"^#EXT-X-MEDIA:TYPE=AUDIO(?![^\n]*URI=)", content, flags=re.M):
+              content = re.sub(r"^(?:#EXT-X-MEDIA:TYPE=AUDIO[^\n]*URI=\"[^\"]*\"[^\n]*\n?)", r"", content, flags=re.M)
         
           # assume it's a master playlist until we detect that it's a variant
           if '#EXT-X-PLAYLIST-TYPE:' in content:
