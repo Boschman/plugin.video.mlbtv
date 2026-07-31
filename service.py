@@ -167,17 +167,22 @@ class RequestHandler(BaseHTTPRequestHandler):
                   last_item_index -= 1
                   #url_line = None
                   extinf_line = None
-                  while extinf_line is None:
+                  # stop at the top of the playlist: without a full length segment to repeat
+                  # there is nothing to pad with, and negative indexes would search forever
+                  while extinf_line is None and last_item_index >= 0:
                       if new_line_array[last_item_index].startswith('#EXTINF:4'):
                           extinf_line = new_line_array[last_item_index]
                           #url_line = new_line_array[last_item_index+1]
                           break
                       last_item_index -= 1
-                  for x in range(0, pad):
-                      new_line_array.append(extinf_line)
-                      # use base proxy URL for more graceful stream padding, instead of repeating last segment
-                      #new_line_array.append(url_line)
-                      new_line_array.append(PROXY_URL + 'pad')
+                  if extinf_line is None:
+                      xbmc.log('Proxy found no segment to pad ' + url + ' with', xbmc.LOGINFO)
+                  else:
+                      for x in range(0, pad):
+                          new_line_array.append(extinf_line)
+                          # use base proxy URL for more graceful stream padding, instead of repeating last segment
+                          #new_line_array.append(url_line)
+                          new_line_array.append(PROXY_URL + 'pad')
                   new_line_array.append(ENDLIST_TEXT)
 
           content = "\n".join(new_line_array)
