@@ -87,7 +87,9 @@ class RequestHandler(BaseHTTPRequestHandler):
           # build our outgoing request URL without the querystring parameters
           url = parsed_url.scheme + '://' + parsed_url.netloc + parsed_url.path
           if not url.endswith(STREAM_EXTENSION):
+              # nothing to proxy: the padding segments point here on purpose
               self.send_error(404)
+              return
 
           headers = {}
           pad = 0
