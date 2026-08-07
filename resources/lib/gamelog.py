@@ -193,7 +193,16 @@ def start_watch_monitor(data, pad_seconds=0, seek_seconds=0):
 
 def watch_monitor(data, pad_seconds, seek_seconds=0):
     post_game_log(data, 'in progress')
+    status, position = watch_playback(pad_seconds, seek_seconds)
+    if status is not None:
+        post_game_log(data, status, position)
+    # the sheet changed, so the home screen has to reload to show it
+    refresh_home_screen()
 
+
+# follow playback to its end, returning the (status, position) left to log,
+# or (None, None) when there is nothing to add to the initial log entry
+def watch_playback(pad_seconds, seek_seconds=0):
     monitor = xbmc.Monitor()
     player = xbmc.Player()
 
@@ -211,10 +220,10 @@ def watch_monitor(data, pad_seconds, seek_seconds=0):
         monitor.waitForAbort(1)
         waited += 1
     if not started:
-        return
+        return None, None
     watched_file = get_playing_file(player)
     if watched_file is None:
-        return
+        return None, None
 
     # jump to the requested resume position once playback is actually under way,
     # retrying since a seek during stream open is silently dropped
@@ -257,10 +266,11 @@ def watch_monitor(data, pad_seconds, seek_seconds=0):
     # finished means playback stopped at 95% or later of the real content, excluding padding
     content_time = total_time - pad_seconds
     if content_time > 0 and last_time >= content_time * 0.95:
-        post_game_log(data, 'finished')
+        return 'finished', None
     # otherwise remember where we stopped so the game can be resumed later
-    elif last_time > 0:
-        post_game_log(data, 'in progress', seconds_to_position(int(last_time)))
+    if last_time > 0:
+        return 'in progress', seconds_to_position(int(last_time))
+    return None, None
 
 
 def get_playing_file(player):

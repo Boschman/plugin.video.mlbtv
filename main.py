@@ -21,6 +21,7 @@ teams = 'None'
 gamechanger = 'False'
 direct_play = None
 start_pos = None
+is_refresh = 'False'
 
 if 'name' in params:
     name = urllib.unquote_plus(params["name"])
@@ -79,10 +80,14 @@ if 'direct_play' in params:
 if 'start_pos' in params:
     start_pos = urllib.unquote_plus(params["start_pos"])
 
+if 'is_refresh' in params:
+    is_refresh = urllib.unquote_plus(params["is_refresh"])
+
 # default addon home screen
 if mode is None:
     # autoplay fav team, if that setting is enabled and a live broadcast is in progress
-    if AUTO_PLAY_FAV == 'true' and FAV_TEAM != 'None':
+    # a reload after playback must not start that same game over again
+    if is_refresh == 'False' and AUTO_PLAY_FAV == 'true' and FAV_TEAM != 'None':
         live_game = live_fav_game()
         if live_game is not None:
             xbmc.log('Auto-playing live game ' + str(live_game))

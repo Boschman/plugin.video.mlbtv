@@ -93,6 +93,10 @@ NEXT_ICON = os.path.join(ROOTDIR,"icon.png")
 BLACK_IMAGE = os.path.join(ROOTDIR, "resources", "img", "black.png")
 STREAM_FINDER_ICON = os.path.join(ROOTDIR, "resources", "img", "stream_finder_icon.png")
 
+#Home screen, the flag marks a reload of the screen by itself
+HOME_URL = 'plugin://' + ADDON_ID + '/'
+HOME_REFRESH_URL = HOME_URL + '?is_refresh=True'
+
 API_URL = 'https://statsapi.mlb.com'
 #User Agents
 UA_IPAD = 'AppleCoreMedia/1.0 ( iPad; compatible; 3ivx HLS Engine/2.0.0.382; Win8; x64; 264P AACP AC3P AESD CLCP HTPC HTPI HTSI MP3P MTKA)'
@@ -300,6 +304,22 @@ def addDir(name,mode,icon,fanart=None,game_day=None,start_inning='False',sport=M
     ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=True)    
     xbmcplugin.setContent(int(sys.argv[1]), 'episodes')
     return ok
+
+
+# reload the home screen, since Kodi returns to the container it left when playback stops,
+# without running the addon again, which leaves the recently watched game and the standings stale
+def refresh_home_screen():
+    monitor = xbmc.Monitor()
+    # wait for the video window to close, so the folder path is the one on screen again
+    waited = 0
+    while waited < 10 and xbmc.getCondVisibility('Window.IsActive(fullscreenvideo)'):
+        if monitor.waitForAbort(1):
+            return
+        waited += 1
+    # the home screen is the addon root, every other listing of ours carries a mode
+    folder_path = xbmc.getInfoLabel('Container.FolderPath')
+    if folder_path.startswith(HOME_URL) and 'mode=' not in folder_path:
+        xbmc.executebuiltin('Container.Refresh("' + HOME_REFRESH_URL + '")')
 
 
 # a text only row, mode 999 does nothing when it is selected
