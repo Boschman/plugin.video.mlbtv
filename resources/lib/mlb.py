@@ -1039,37 +1039,28 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
         # favorite team play option: fall back to a single video feed if no favorite team feed was found
         if fav_feed is None and len(eligible_video_feeds) == 1:
             fav_feed = eligible_video_feeds[0]
-        # add the favorite team play option to the top of the stream selection list
+        # add the condensed game play option to the top of the stream selection list
+        condensed_offset = 1
+        stream_title.insert(0, LOCAL_STRING(30449))
+
+        # add the favorite team play option above it, at the very top of the list
         if fav_feed is not None:
             fav_offset = 1
             stream_title.insert(0, LOCAL_STRING(30448) + ' ' + FAV_TEAM)
 
-        # add the condensed game play option to the very top of the stream selection list
-        condensed_offset = 1
-        stream_title.insert(0, LOCAL_STRING(30449))
-
-        # append the favorite team division standings as they stood going into this game
-        # anything from here on is display only, so remember where the selectable options end
-        stream_option_count = len(stream_title)
-        if SHOW_STANDINGS == 'true' and direct_play is None and fav_side is not None and epg_game.get('gameType') == 'R' and 'officialDate' in epg_game:
-            standings_date = (stringToDate(epg_game['officialDate'], '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
-            standings = get_fav_division_standings(epg_game['season'], standings_date)
-            if standings is not None:
-                stream_title += get_standings_rows(standings, standings_date)
-
         # stream selection dialog, bypassed when the game log item requested a direct play option
-        if direct_play == 'condensed':
+        if direct_play == 'fav' and fav_offset == 1:
             n = 0
-        elif direct_play == 'fav' and fav_offset == 1:
-            n = condensed_offset
+        elif direct_play == 'condensed':
+            n = fav_offset
         else:
-            # re-show the dialog when a standings row is picked, those aren't selectable options
-            while True:
-                n = dialog.select(LOCAL_STRING(30390), stream_title)
-                if n < stream_option_count:
-                    break
+            n = dialog.select(LOCAL_STRING(30390), stream_title)
+        # favorite team play option: play their feed without asking for a start point or skip type
+        if n == 0 and fav_offset == 1:
+            fav_play = True
+            selected_content_id, selected_media_state, selected_call_letters = fav_feed
         # condensed game play option: play the highlight titled "Condensed Game:" and stop processing here
-        if n == 0 and condensed_offset == 1:
+        elif n == fav_offset and condensed_offset == 1:
             highlight_items = []
             for game in json_source['dates']:
                 if 'highlights' in game['games'][0]['content']:
@@ -1080,10 +1071,6 @@ def stream_select(game_pk, spoiler='True', suspended='False', start_inning='Fals
             if GAME_LOG_URL != '' and fav_side is not None:
                 from .gamelog import game_log_data, start_watch_monitor
                 start_watch_monitor(game_log_data(epg_game, 'Condensed Game'))
-        # favorite team play option: play their feed without asking for a start point or skip type
-        elif n == condensed_offset and fav_offset == 1:
-            fav_play = True
-            selected_content_id, selected_media_state, selected_call_letters = fav_feed
         # highlights selection will go to that function and stop processing here
         elif n == condensed_offset + fav_offset and highlight_offset == 1:
             for game in json_source['dates']:

@@ -453,7 +453,7 @@ msgid "MASN live stream"
 msgstr ""
 
 msgctxt "#30448"
-msgid "Play"
+msgid "Play Full Game"
 msgstr ""
 
 msgctxt "#30449"
